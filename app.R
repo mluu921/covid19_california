@@ -36,9 +36,11 @@ retrieve_data2 <- function() {
     data <- read_csv(url)
 }
 
+# data <- retrieve_data()
+# data2 <- retrieve_data2()
 
-data <- retrieve_data()
-data2 <- retrieve_data2()
+data <- read_csv('data.csv')
+data2 <- read_csv('data2.csv')
 
 header <- dashboardHeader(
     title = 'California COVID-19'
@@ -46,32 +48,44 @@ header <- dashboardHeader(
 
 sidebar <- dashboardSidebar(
     disable = T
-    
 )
 
 body <- dashboardBody(
-    tags$style(type = "text/css", "#map {height: calc(100vh - 100px) !important;}"),
+    tags$style(type = "text/css", "#map {height: calc(100vh - 200px) !important;}"),
+    fluidRow(box(
+        selectInput(
+            "county",
+            label = h4("Selected County"),
+            choices = unique(data$county),
+            selected = unique(data$county)[[1]]
+        ),
+        width = 12,
+        
+        sliderInput(
+            "date",
+            label = h4("Selected Date"),
+            min = min(data$date),
+            max = max(data$date),
+            value = max(data$date)
+        ),
+        
+        footer = textOutput('last_update')
+    )), 
+    
     fluidRow(
-        box(
-            selectInput(
-                "county",
-                label = h4("Selected County"),
-                choices = unique(data$county),
-                selected = unique(data$county)[[1]]
-            ), width = 12,
-            footer = textOutput('last_update')
-        )
+        valueBoxOutput('total_cases', width = 3),
+        valueBoxOutput('new_cases', width = 3),
+        valueBoxOutput('deaths', width = 3),
+        valueBoxOutput('new_deaths', width = 3),
     ),
-    fluidRow(
-             valueBoxOutput('total_cases', width = 3),
-             valueBoxOutput('new_cases', width = 3),
-             valueBoxOutput('deaths', width = 3),
-             valueBoxOutput('new_deaths', width = 3),
-             ), 
     fluidRow(box(leafletOutput('map'), width = 12)),
     fluidRow(box(plotlyOutput('new_case_hist'), width = 12)),
-    fluidRow(box(DT::dataTableOutput('table'), width = 12, 
-                 footer = glue::glue('Source: LA Times Datadesk')))
+    fluidRow(box(
+        DT::dataTableOutput('table'),
+        width = 12,
+        footer = glue::glue('Source: LA Times Datadesk')
+    ))
+    
 )
 
 ui <- dashboardPage(
@@ -84,6 +98,10 @@ server <- function(input, output) {
     
     selected_county <- reactive({
         input$county
+    })
+    
+    selected_date <- reactive({
+        input$date
     })
     
     output$map <- renderLeaflet({
@@ -111,11 +129,37 @@ server <- function(input, output) {
 
     })
     
+    observe({
+
+        temp <- data %>%
+            filter(county == selected_county()) %>%
+            filter(date == selected_date())
+
+        colorPal <- colorNumeric('viridis', temp$confirmed_cases)
+
+        leafletProxy('map', data = temp) %>%
+            clearMarkers() %>%
+            clearControls() %>%
+            addCircleMarkers(
+                lng = ~ x,
+                lat = ~ y,
+                popup = ~ label,
+                radius = ~ sqrt(confirmed_cases) / 2,
+                color = ~ colorPal(confirmed_cases)
+            ) %>%
+            addLegend(
+                pal = colorPal,
+                values = ~confirmed_cases,
+                title = 'Confirmed Cases'
+            )
+
+    })
+    
     output$table <- DT::renderDataTable({
         
         out <- data %>%
             filter(county == selected_county()) %>%
-            filter(date == max(date)) %>%
+            filter(date == selected_date()) %>%
             select(
                 date,
                 place,
@@ -146,12 +190,12 @@ server <- function(input, output) {
     
     output$last_update <- renderText({
         
-        date <- data2 %>%
+        date <- data %>%
             filter(
                 county == selected_county() & 
                     date == max(date)
             ) %>%
-            pull(date) %>% as.character()
+            pull(date) %>% as.character() %>% .[[1]]
         
         out <- glue::glue('Data last updated: {date}')
         
