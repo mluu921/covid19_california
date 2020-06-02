@@ -1,0 +1,13 @@
+name: covid19lac
+title: covid19lac
+username:
+account: mluu921
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1979350
+bundleId: 3216985
+url: https://mluu921.shinyapps.io/covid19lac/
+when: 1591077329.62243
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: 00-process_data.R|data.csv|data2.csv
