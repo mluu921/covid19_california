@@ -36,11 +36,11 @@ retrieve_data2 <- function() {
     data <- read_csv(url)
 }
 
-# data <- retrieve_data()
-# data2 <- retrieve_data2()
+data <- retrieve_data()
+data2 <- retrieve_data2()
 
-data <- read_csv('data.csv')
-data2 <- read_csv('data2.csv')
+# data <- read_csv('data.csv')
+# data2 <- read_csv('data2.csv')
 
 header <- dashboardHeader(
     title = 'California COVID-19'
@@ -67,9 +67,7 @@ body <- dashboardBody(
             min = min(data$date),
             max = max(data$date),
             value = max(data$date)
-        ),
-        
-        footer = textOutput('last_update')
+        )
     )), 
     
     fluidRow(
@@ -94,7 +92,7 @@ ui <- dashboardPage(
     body
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     
     selected_county <- reactive({
         input$county
@@ -102,6 +100,26 @@ server <- function(input, output) {
     
     selected_date <- reactive({
         input$date
+    })
+    
+    observe({
+        
+        max <- data %>%
+            filter(county == selected_county()) %>%
+            distinct(date) %>%
+            pull() %>% max()
+        
+        min <- data %>%
+            filter(county == selected_county()) %>%
+            distinct(date) %>%
+            pull() %>% min()
+        
+        updateSliderInput(
+            session,
+            'date',
+            max = max,
+            min = min
+        )
     })
     
     output$map <- renderLeaflet({
@@ -188,20 +206,20 @@ server <- function(input, output) {
             
     })
     
-    output$last_update <- renderText({
-        
-        date <- data %>%
-            filter(
-                county == selected_county() & 
-                    date == max(date)
-            ) %>%
-            pull(date) %>% as.character() %>% .[[1]]
-        
-        out <- glue::glue('Data last updated: {date}')
-        
-        return(out)
-        
-    })
+    # output$last_update <- renderText({
+    #     
+    #     date <- data %>%
+    #         filter(
+    #             county == selected_county() & 
+    #                 date == max(date)
+    #         ) %>%
+    #         pull(date) %>% as.character() %>% .[[1]]
+    #     
+    #     out <- glue::glue('Data last updated: {date}')
+    #     
+    #     return(out)
+    #     
+    # })
     
     output$new_case_hist <- renderPlotly({
         
