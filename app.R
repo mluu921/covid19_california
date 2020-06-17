@@ -39,8 +39,8 @@ retrieve_data2 <- function() {
 data <- retrieve_data()
 data2 <- retrieve_data2()
 
-<<<<<<< HEAD
 data2 <- data2 %>%
+    group_by(county) %>%
     mutate(
         seven_day_average = (new_confirmed_cases +
                                  lag(new_confirmed_cases, n = 1) +
@@ -51,8 +51,7 @@ data2 <- data2 %>%
                                  lag(new_confirmed_cases, n = 6)) / 7
     )
 
-=======
->>>>>>> 5efb0441d219361c4f1adbe794f5816229f38aff
+
 # data <- read_csv('data.csv')
 # data2 <- read_csv('data2.csv')
 
