@@ -36,11 +36,22 @@ retrieve_data2 <- function() {
     data <- read_csv(url)
 }
 
-# data <- retrieve_data()
-# data2 <- retrieve_data2()
+data <- retrieve_data()
+data2 <- retrieve_data2()
 
-data <- read_csv('data.csv')
-data2 <- read_csv('data2.csv')
+data2 <- data2 %>%
+    mutate(
+        seven_day_average = (new_confirmed_cases +
+                                 lag(new_confirmed_cases, n = 1) +
+                                 lag(new_confirmed_cases, n = 2) +
+                                 lag(new_confirmed_cases, n = 3) +
+                                 lag(new_confirmed_cases, n = 4) +
+                                 lag(new_confirmed_cases, n = 5) +
+                                 lag(new_confirmed_cases, n = 6)) / 7
+    )
+
+# data <- read_csv('data.csv')
+# data2 <- read_csv('data2.csv')
 
 header <- dashboardHeader(
     title = 'California COVID-19'
@@ -57,7 +68,7 @@ body <- dashboardBody(
             "county",
             label = h4("Selected County"),
             choices = unique(data$county),
-            selected = unique(data$county)[[1]]
+            selected = "Los Angeles"
         ),
         width = 12,
         
@@ -207,10 +218,15 @@ server <- function(input, output) {
         
         temp <- data2 %>% filter(county == selected_county())
         
-        plot_ly(temp, x = ~date, y = ~new_confirmed_cases, type = 'bar') %>%
+        plot_ly(temp) %>%
+            add_trace(x = ~ date, y = ~ new_confirmed_cases, type = 'bar', name = 'New Confirmed Cases') %>%
+            add_trace(x = ~ date, y = ~ seven_day_average, type = 'scatter', mode = 'lines', name = '7 Day Average') %>%
             layout(
-                xaxis = list(title = 'Date', fixedrange = T),
-                yaxis = list(title = 'New Confirmed Cases', fixedrange = T)
+                xaxis = list(title = '', fixedrange = T),
+                yaxis = list(title = 'New Confirmed Cases', fixedrange = T),
+                legend = list(orientation = 'h',
+                              xanchor = 'center',
+                              x = .5)
             ) %>%
             config(displayModeBar = T)
         
